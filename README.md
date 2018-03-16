@@ -3,4 +3,5 @@ This repository shows some of my work in Data Science professional and academic 
 ,R scripts, and pdf reports.
 
 Thank you for visiting!
-Cheers Karim
+Cheers!
+Karim

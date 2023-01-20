@@ -1,0 +1,79 @@
+
+Creating OCR annotations using Google Vision API
+
+We will now see how to perform OCR on our image using Google Vision API.
+
+First you will need to create an account on https://cloud.google.com:
+
+    create a project (or use an exesting one)
+    then go to "API and services"/library and serach for "vision API"
+    activate the API for your project (You might need to associate facturation information if you haven't already)
+
+Now that the API is activated we will need to get an API in order to call later in our project:
+
+    go to "API and services"/indentification
+    create a service account with authorization to use the vision API
+
+On the service account details page:
+
+    click on add a key
+    download the key using json format
+    place the key in the folder of the project
+
+Install Google Cloud API using: pip install --upgrade google-cloud-storage
+
+We can now start to code to add OCR annotations to the asset metadata! (You can also perform OCR on remote images using a URL: detect text in images)
+
+GOOGLE_KEY = json.loads(os.getenv("KILI_API_CLOUD_VISION"))
+
+def implicit():
+    from google.cloud import storage
+
+    # If you don't specify credentials when constructing the client, the
+    # client library will look for credentials in the environment.
+    storage_client = storage.Client()
+
+    # Make an authenticated API request
+    buckets = list(storage_client.list_buckets())
+    print(buckets)
+
+def detect_text(path):
+    """Detects text in the file."""
+    credentials = service_account.Credentials.from_service_account_info(GOOGLE_KEY)
+    client = vision.ImageAnnotatorClient(credentials=credentials)
+
+    with io.open(path, "rb") as image_file:
+        content = image_file.read()
+
+    response = client.text_detection({"content": content})
+    texts = response._pb.text_annotations
+    text_annotations = []
+
+    for text in texts:
+
+        vertices = [{"x": vertex.x, "y": vertex.y} for vertex in text.bounding_poly.vertices]
+
+        tmp = {
+            "description": text.description,
+            "boundingPoly": {
+                "vertices": vertices,
+            },
+        }
+
+        text_annotations.append(tmp)
+
+    if response.error.message:
+        raise Exception(
+            "{}\nFor more info on error messages, check: "
+            "https://cloud.google.com/apis/design/errors".format(response.error.message)
+        )
+
+    return text_annotations
+
+PATH_TO_IMG = "./recipes/img/store_front.jpeg"
+
+text_annotations = detect_text(PATH_TO_IMG)
+
+im = Image.open(PATH_TO_IMG)
+IMG_WIDTH, IMG_HEIGHT = im.size
+
